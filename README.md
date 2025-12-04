@@ -165,3 +165,22 @@ Write **8–12 lines** describing how you would implement a Stripe Checkout flow
 3. Share the link.
 
 Good luck.
+
+---
+
+## Stripe Answer
+
+To implement Stripe Checkout for application fees:
+
+1. **Payment Request Creation**: Insert a `payment_requests` row when a counselor initiates checkout, storing `application_id`, `amount`, `currency`, and `status: 'pending'`.
+
+2. **Stripe Checkout Session**: Call `stripe.checkout.sessions.create()` with the payment amount, success/cancel URLs, and metadata (application_id, payment_request_id). This happens immediately after creating the payment_request row.
+
+3. **Session Storage**: Store the `checkout_session_id` and `checkout_url` in the payment_requests row, then redirect the user to the Stripe-hosted checkout page.
+
+4. **Webhook Handling**: Set up a webhook endpoint to listen for `checkout.session.completed` events. Verify the webhook signature, extract the session_id from the event, and update the payment_requests row status to 'succeeded'. Store the `payment_intent_id` for future reference.
+
+5. **Application Update**: On successful payment confirmation via webhook, update the `applications` table by setting `payment_status: 'paid'` and `paid_at: now()` where the application_id matches. Optionally trigger notification emails to counselors and students.
+
+6. **Idempotency**: Use database transactions and unique constraints on checkout_session_id to prevent duplicate processing if webhooks are retried by Stripe.
+

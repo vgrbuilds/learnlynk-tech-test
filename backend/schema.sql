@@ -17,8 +17,12 @@ create table if not exists public.leads (
   updated_at timestamptz not null default now()
 );
 
--- TODO: add useful indexes for leads:
--- - by tenant_id, owner_id, stage, created_at
+-- Indexes for leads table for efficient querying
+create index if not exists idx_leads_tenant_id on public.leads(tenant_id);
+create index if not exists idx_leads_owner_id on public.leads(owner_id);
+create index if not exists idx_leads_stage on public.leads(stage);
+create index if not exists idx_leads_tenant_owner on public.leads(tenant_id, owner_id);
+create index if not exists idx_leads_created_at on public.leads(created_at desc);
 
 
 -- Applications table
@@ -34,8 +38,11 @@ create table if not exists public.applications (
   updated_at timestamptz not null default now()
 );
 
--- TODO: add useful indexes for applications:
--- - by tenant_id, lead_id, stage
+-- Indexes for applications table for efficient querying
+create index if not exists idx_applications_tenant_id on public.applications(tenant_id);
+create index if not exists idx_applications_lead_id on public.applications(lead_id);
+create index if not exists idx_applications_stage on public.applications(stage);
+create index if not exists idx_applications_tenant_lead on public.applications(tenant_id, lead_id);
 
 
 -- Tasks table
@@ -51,7 +58,16 @@ create table if not exists public.tasks (
   updated_at timestamptz not null default now()
 );
 
--- TODO:
--- - add check constraint for type in ('call','email','review')
--- - add constraint that due_at >= created_at
--- - add indexes for tasks due today by tenant_id, due_at, status
+-- Check constraints for tasks table
+alter table public.tasks add constraint tasks_type_check 
+  check (type in ('call', 'email', 'review'));
+
+alter table public.tasks add constraint tasks_due_at_check 
+  check (due_at >= created_at);
+
+-- Indexes for tasks table for efficient querying (especially for today's tasks)
+create index if not exists idx_tasks_tenant_id on public.tasks(tenant_id);
+create index if not exists idx_tasks_due_at on public.tasks(due_at);
+create index if not exists idx_tasks_status on public.tasks(status);
+create index if not exists idx_tasks_tenant_due on public.tasks(tenant_id, due_at);
+create index if not exists idx_tasks_tenant_status_due on public.tasks(tenant_id, status, due_at);
